@@ -7,6 +7,7 @@ public class LineDrawingSystem : MonoBehaviour
     public Material material;
     public Vector3[] vertices;
     public float width;
+    public float constraintAngle;
 
     private LineRenderer line;
     private List<Vector3> listVertices;
@@ -23,15 +24,16 @@ public class LineDrawingSystem : MonoBehaviour
         SetupList();
         SetupDistances();
         SetupLine();
+
+        Debug.Log(GetNewPositionConstrained(new Vector3(0, 0, 0), new Vector3(-2, 0, 0), new Vector3(0, -2, 0), 2));
     }
 
     void Update()
     {
         if(Input.GetMouseButton(0))
         {
-            Debug.Log(GetMousePosition());
             MoveToTarget(GetMousePosition());
-            MoveBackward();
+           // MoveBackward();
         }
     }
 
@@ -73,16 +75,32 @@ public class LineDrawingSystem : MonoBehaviour
 
     void MoveToTarget(Vector3 target)
     {
-        ChangeVerticePositionAt(vertices.Length - 1, target);
-
-        for (int i = vertices.Length - 2; i >= 0; i--)
+        for (int i = vertices.Length - 1; i >= 0; i--)
         {
-            float crtDstBtwPoints = Vector3.Distance(line.GetPosition(i + 1), line.GetPosition(i));
-            float dstBtwPoints = distBtwVertices[i];
-            float dstToMove = crtDstBtwPoints - dstBtwPoints;
-            Vector3 dirToMove = (line.GetPosition(i + 1) - line.GetPosition(i)).normalized;
-            Vector3 newPosition = line.GetPosition(i) + dirToMove * dstToMove;
+            Vector3 newPosition;
+            if(i == vertices.Length - 1)
+            {
+                newPosition = target;
+            }
+            else
+            {
+                float crtDstBtwPoints = Vector3.Distance(line.GetPosition(i + 1), line.GetPosition(i));
+                float dstBtwPoints = distBtwVertices[i];
+                float dstToMove = crtDstBtwPoints - dstBtwPoints;
+
+                Vector3 dirToMove = (line.GetPosition(i + 1) - line.GetPosition(i)).normalized;
+                newPosition = line.GetPosition(i) + dirToMove * dstToMove;
+            }
             ChangeVerticePositionAt(i, newPosition);
+            //if (i > 0)
+            //{
+            //    Vector3 newPositionConstrained = GetNewPositionConstrained(line.GetPosition(i - 1), line.GetPosition(i), newPosition, distBtwVertices[i - 1]);
+            //    ChangeVerticePositionAt(i, newPositionConstrained);
+            //}
+            //else
+            //{
+            //    ChangeVerticePositionAt(i, newPosition);
+            //}
         }
     }
 
@@ -95,9 +113,13 @@ public class LineDrawingSystem : MonoBehaviour
             float crtDstBtwPoints = Vector3.Distance(line.GetPosition(i - 1), line.GetPosition(i));
             float dstBtwPoints = distBtwVertices[i - 1];
             float dstToMove = crtDstBtwPoints - dstBtwPoints;
+
             Vector3 dirToMove = (line.GetPosition(i - 1) - line.GetPosition(i)).normalized;
             Vector3 newPosition = line.GetPosition(i) + dirToMove * dstToMove;
+
             ChangeVerticePositionAt(i, newPosition);
+            //Vector3 newPositionConstrained = GetNewPositionConstrained(line.GetPosition(i - 1), line.GetPosition(i), newPosition, distBtwVertices[i - 1]);
+            //ChangeVerticePositionAt(i, newPositionConstrained);
         }
     }
 
@@ -111,5 +133,41 @@ public class LineDrawingSystem : MonoBehaviour
         Vector3 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         mousePosition = new Vector3(mousePosition.x, mousePosition.y, 0);
         return mousePosition;
+    }
+
+    Vector3 ClampPositionTo(Vector3 prevVerticePosition, Vector3 previousPosition, Vector3 newPosition, float r)
+    {
+        float radAngle = Mathf.Deg2Rad * constraintAngle;
+        float cosR = r * Mathf.Cos(radAngle);
+        float sinR = r * Mathf.Sin(radAngle);
+
+        if (previousPosition.x < prevVerticePosition.x)
+        {
+            cosR *= -1;
+        }
+        if(newPosition.y < prevVerticePosition.y)
+        {
+            sinR *= -1;
+        }
+
+        float x = prevVerticePosition.y + cosR;
+        float y = prevVerticePosition.y + sinR;
+
+        return new Vector3(x, y, 0);
+    }
+
+    Vector3 GetNewPositionConstrained(Vector3 prevVerticePosition, Vector3 prevPosition, Vector3 newPosition, float r)
+    {
+        float cosTheta = Vector3.Dot((prevPosition - prevVerticePosition).normalized, (newPosition - prevVerticePosition).normalized);
+        float cosThetaMax = Mathf.Cos(constraintAngle * Mathf.Deg2Rad);
+
+        if(cosTheta < cosThetaMax)
+        {
+            return ClampPositionTo(prevVerticePosition, prevPosition, newPosition, r);
+        }
+        else
+        {
+            return newPosition;
+        }
     }
 }
