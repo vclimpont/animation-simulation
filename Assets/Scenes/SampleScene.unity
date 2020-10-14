@@ -352,4 +352,4 @@ MonoBehaviour:
   - {x: 7, y: 0, z: 0}
   - {x: 8, y: 0, z: 0}
   width: 0.2
-  constraintAngle: 180
+  constraintAngle: 45

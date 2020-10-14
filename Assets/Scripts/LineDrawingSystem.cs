@@ -167,7 +167,6 @@ public class LineDrawingSystem : MonoBehaviour
         Vector3 alignedPosition = verticePositionM1 + prevDir * r;
         float cosTheta = Vector3.Dot(prevDir, crtDir);
         float cosThetaMax = Mathf.Cos(constraintAngle * Mathf.Deg2Rad);
-        Debug.Log(cosTheta + " " + cosThetaMax);
 
         if(cosTheta < cosThetaMax)
         {
